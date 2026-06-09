@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+*.p12
+*.pem
+*.cer
+certificates/
+graphify-out/
+.server.*.log
