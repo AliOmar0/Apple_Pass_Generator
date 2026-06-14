@@ -76,21 +76,32 @@ export default function App() {
     advancedJson: "{}",
   }));
   const [activePanel, setActivePanel] = useState("design");
-  const [signingReady, setSigningReady] = useState(null);
+  const [signingInfo, setSigningInfo] = useState(null);
   const [downloadState, setDownloadState] = useState("idle");
   const [notice, setNotice] = useState("");
+  const signingReady = Boolean(signingInfo?.signingConfigured);
 
   useEffect(() => {
     const healthUrl = apiUrl("/api/health");
     if (!healthUrl) {
-      setSigningReady(false);
+      setSigningInfo({
+        signingConfigured: false,
+        provider: "WalletWallet",
+        message: "The managed signing proxy has not been deployed.",
+      });
       return;
     }
 
     fetch(healthUrl)
       .then((response) => response.json())
-      .then((data) => setSigningReady(data.signingConfigured))
-      .catch(() => setSigningReady(false));
+      .then((data) => setSigningInfo(data))
+      .catch(() =>
+        setSigningInfo({
+          signingConfigured: false,
+          provider: "WalletWallet",
+          message: "The managed signing service is unavailable.",
+        }),
+      );
   }, []);
 
   const selectedTemplate = useMemo(
@@ -128,7 +139,11 @@ export default function App() {
       const response = await fetch(passesUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pass),
+        body: JSON.stringify({
+          ...pass,
+          assets: { logo: "", strip: "", thumbnail: "" },
+          advancedJson: "{}",
+        }),
       });
 
       if (!response.ok) {
@@ -136,12 +151,17 @@ export default function App() {
         throw new Error(error.message || "The pass could not be generated.");
       }
 
-      const { downloadUrl } = await response.json();
+      const result = await response.json();
+      const { downloadUrl } = result;
       const passDownloadUrl = downloadUrl.startsWith("http")
         ? downloadUrl
         : new URL(downloadUrl, passesUrl).toString();
       setDownloadState("done");
-      setNotice("Signed pass created. Open it on an Apple device to add it to Wallet.");
+      setNotice(
+        result.provider === "WalletWallet"
+          ? `Managed pass created with the ${result.appliedColorPreset} color preset.`
+          : "Signed pass created. Open it on an Apple device to add it to Wallet.",
+      );
       window.location.assign(passDownloadUrl);
     } catch (error) {
       setDownloadState("error");
@@ -173,15 +193,15 @@ export default function App() {
         <div className="topbar-meta">
           <span className={`status-pill ${signingReady ? "ready" : ""}`}>
             <i />
-            {signingReady === null
+            {signingInfo === null
               ? "Checking signer"
               : signingReady
-                ? "Signer connected"
+                ? `${signingInfo.provider || "Signer"} connected`
                 : hasConfiguredApi
                   ? "Signer unavailable"
                   : "Pages preview mode"}
           </span>
-          <a href="#setup">Certificate setup</a>
+          <a href="#setup">Signing setup</a>
         </div>
       </header>
 
@@ -276,6 +296,7 @@ export default function App() {
                       <ChevronDown size={16} />
                     </div>
                   </label>
+                  <p className="provider-note">The style changes this preview and project export. WalletWallet Free currently issues its standard managed layout.</p>
                 </section>
 
                 <section className="control-section">
@@ -287,6 +308,7 @@ export default function App() {
                     <ColorInput label="Text" value={pass.colors.foreground} onChange={(value) => updateNested("colors", "foreground", value)} />
                     <ColorInput label="Labels" value={pass.colors.label} onChange={(value) => updateNested("colors", "label", value)} />
                   </div>
+                  <p className="provider-note">WalletWallet Free maps the background to its nearest preset: dark, blue, green, red, purple, or orange.</p>
                 </section>
 
                 <section className="control-section">
@@ -298,6 +320,7 @@ export default function App() {
                     <ImageUpload label="Strip image" hint="Optional banner artwork" value={pass.assets.strip} onChange={(value) => updateNested("assets", "strip", value)} />
                     <ImageUpload label="Thumbnail" hint="Optional event or person image" value={pass.assets.thumbnail} onChange={(value) => updateNested("assets", "thumbnail", value)} />
                   </div>
+                  <p className="provider-note">Artwork remains in exported projects. WalletWallet requires Pro before these images can appear on managed passes.</p>
                 </section>
               </>
             )}
@@ -355,11 +378,12 @@ export default function App() {
                     <span>Expiration date</span>
                     <input type="datetime-local" value={pass.expirationDate} onChange={(event) => update("expirationDate", event.target.value)} />
                   </label>
+                  <p className="provider-note">Managed signing applies the expiration date. Relevant dates remain available in project exports.</p>
                 </section>
 
                 <section className="control-section">
                   <div className="section-heading">
-                    <div><h3>Additional PassKit JSON</h3><p>Advanced properties are merged into pass.json. Core signing identifiers cannot be overridden.</p></div>
+                    <div><h3>Additional PassKit JSON</h3><p>Preserved in project exports. WalletWallet managed signing ignores unsupported raw PassKit properties.</p></div>
                   </div>
                   <textarea
                     className="json-editor"
@@ -385,40 +409,44 @@ export default function App() {
           <PassPreview pass={pass} />
 
           <div className="publish-card">
-            {!signingReady && signingReady !== null && (
+            {!signingReady && signingInfo !== null && (
               <div className="setup-warning">
                 <CircleAlert size={18} />
                 <span>
-                  <strong>{hasConfiguredApi ? "The signing API isn’t ready." : "The signing API isn’t connected."}</strong>{" "}
-                  {hasConfiguredApi
-                    ? "Add Apple certificates to the API host to enable `.pkpass` downloads."
-                    : "The editor and project export work now; connect `PASS_API_URL` later to generate signed passes."}
+                  <strong>{hasConfiguredApi ? "Managed signing isn’t ready." : "The WalletWallet proxy isn’t connected."}</strong>{" "}
+                  {signingInfo?.message || "Deploy the Cloudflare Worker to generate signed passes."}
                 </span>
+              </div>
+            )}
+            {signingReady && signingInfo?.usage && (
+              <div className="provider-summary">
+                <span>WalletWallet {signingInfo.usage.plan || "free"}</span>
+                <strong>{signingInfo.usage.remaining} of {signingInfo.usage.limit} passes remaining this month</strong>
               </div>
             )}
             <button className="wallet-button" type="button" onClick={downloadPass} disabled={downloadState === "loading"}>
               {downloadState === "loading" ? <LoaderCircle className="spinner" size={24} /> : <Apple fill="currentColor" size={25} />}
-              <span><small>{signingReady ? "Download and" : "Requires signer to"}</small>Add to Apple Wallet</span>
+              <span><small>{signingReady ? "Create managed pass" : "Requires signer to"}</small>Add to Apple Wallet</span>
             </button>
             <button className="secondary-button" type="button" onClick={signingReady ? downloadPass : exportProject} disabled={downloadState === "loading"}>
-              <Download size={17} /> {signingReady ? "Download .pkpass" : "Export pass project"}
+              <Download size={17} /> {signingReady ? "Open device install page" : "Export pass project"}
             </button>
             {notice && <p className={`notice ${downloadState === "error" ? "error" : ""}`}>{notice}</p>}
-            <p className="privacy-note">Your private key stays on this server and is never exposed to pass recipients.</p>
+            <p className="privacy-note">The WalletWallet API key stays encrypted in Cloudflare and is never included in this website.</p>
           </div>
         </aside>
       </main>
 
       <section className="setup-section" id="setup">
         <div>
-          <span className="step-label">PRODUCTION SETUP</span>
-          <h2>Connect your Apple signing certificate</h2>
-          <p>Wallet passes must be signed by the organization that owns the Pass Type ID. Add the three PEM files listed in <code>.env.example</code>, restart the server, and this builder will generate installable passes.</p>
+          <span className="step-label">MANAGED SIGNING</span>
+          <h2>WalletWallet signs the pass for you</h2>
+          <p>No Apple Developer membership or certificate is needed. A Cloudflare Worker keeps the WalletWallet API key private and sends users to a hosted page that selects Apple Wallet, Google Wallet, or a desktop QR code.</p>
         </div>
         <ol>
-          <li><span>1</span>Create a Pass Type ID in Apple Developer.</li>
-          <li><span>2</span>Create its certificate and export the certificate and private key as PEM.</li>
-          <li><span>3</span>Download Apple’s WWDR intermediate certificate and configure the environment paths.</li>
+          <li><span>1</span>Create a free WalletWallet API key.</li>
+          <li><span>2</span>Store it as an encrypted Cloudflare Worker secret.</li>
+          <li><span>3</span>Use up to 1,000 managed passes each month on the free tier.</li>
         </ol>
       </section>
     </div>

@@ -1,0 +1,12 @@
+{
+  "name": "apple-pass-walletwallet",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-06-14",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "ALLOWED_ORIGINS": "https://aliomar0.github.io,http://localhost:5173,http://localhost:3001"
+  }
+}

@@ -905,6 +905,39 @@ textarea:focus {
   flex: none;
 }
 
+.provider-note {
+  margin: 12px 0 0;
+  padding: 9px 10px;
+  color: #6941c6;
+  border-radius: 8px;
+  background: #f4f3ff;
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.provider-summary {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #067647;
+  border: 1px solid #abefc6;
+  border-radius: 10px;
+  background: #ecfdf3;
+  font-size: 9.5px;
+}
+
+.provider-summary span {
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.provider-summary strong {
+  text-align: right;
+}
+
 .wallet-button,
 .secondary-button {
   width: 100%;

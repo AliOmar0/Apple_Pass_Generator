@@ -1,103 +1,103 @@
 # Wallet Studio
 
-A full-stack Apple Wallet pass builder powered by React, Express, and
-[`passkit-generator`](https://github.com/alexandercerutti/passkit-generator).
+A React pass builder for Apple Wallet and Google Wallet. The public site uses
+[WalletWallet](https://www.walletwallet.dev/) for managed signing through a
+Cloudflare Worker, so no Apple Developer membership or Pass Type ID certificate
+is required.
 
-It includes:
+Live site:
 
-- Ready-to-edit membership, event, coupon, store card, and boarding pass templates
-- A live Wallet-style preview
+```text
+https://aliomar0.github.io/Apple_Pass_Generator/
+```
+
+## Features
+
+- Membership, event, coupon, store card, and boarding pass templates
+- Live Wallet-style preview
 - Editable front and back fields
-- Brand colors and artwork uploads
-- QR, PDF417, Aztec, and Code 128 barcode support
+- QR, PDF417, Aztec, and Code 128 barcodes
 - Relevant and expiration dates
-- Advanced PassKit JSON overrides
-- Secure server-side pass signing and `.pkpass` downloads
+- Project export
+- Managed Apple and Google Wallet installation links
 
-## Run locally
+## Local development
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The editor works in preview mode before Apple
-certificates are configured.
+The React app opens at `http://localhost:5173`.
 
-## Configure Apple signing
-
-Apple Wallet only accepts passes signed with a certificate tied to your Pass
-Type ID. Create the identifier and certificate in the Apple Developer portal,
-then prepare these PEM files:
-
-1. Apple WWDR intermediate certificate
-2. Pass Type ID signing certificate
-3. Private key for the signing certificate
-
-Copy `.env.example` to `.env` and fill in:
-
-```dotenv
-APPLE_PASS_TYPE_IDENTIFIER=pass.com.example.walletstudio
-APPLE_TEAM_IDENTIFIER=YOUR_TEAM_ID
-APPLE_WWDR_CERT_PATH=./certificates/wwdr.pem
-APPLE_SIGNER_CERT_PATH=./certificates/signerCert.pem
-APPLE_SIGNER_KEY_PATH=./certificates/signerKey.pem
-APPLE_SIGNER_KEY_PASSPHRASE=
-```
-
-The API also supports base64 certificate values for hosted environments. See
-`.env.example` for the variable names.
-
-### Convert a `.p12` export to PEM
+To test the WalletWallet proxy locally:
 
 ```bash
-openssl pkcs12 -in pass-certificate.p12 -clcerts -nokeys -out signerCert.pem
-openssl pkcs12 -in pass-certificate.p12 -nocerts -out signerKey.pem
-openssl x509 -inform DER -in AppleWWDRCAG4.cer -out wwdr.pem
+copy .dev.vars.example .dev.vars
+npm run worker:dev
 ```
 
-Keep certificates and private keys outside source control. The included
-`.gitignore` excludes common certificate formats and the `certificates/`
-directory.
+Add your `ww_live_...` key to `.dev.vars`. Copy `.env.example` to `.env` so the
+frontend connects to Wrangler at `http://localhost:8787`.
 
-## Production
+## Deploy managed signing
 
-```bash
-npm run build
-npm start
-```
+WalletWallet Free currently includes 1,000 issued passes per month. Its free
+tier supports pass fields, barcodes, expiration, updates, hosted install pages,
+and six color presets. Custom colors and artwork require WalletWallet Pro.
 
-Express serves the built frontend and the signing API from the same origin.
-Use HTTPS in production. Generated passes are exposed through a single-use URL
-that expires after five minutes. On an iPhone, Safari opens that URL and prompts
-the user to review and add the pass to Apple Wallet.
+### 1. Create accounts and credentials
 
-## GitHub Pages
+Create:
 
-The workflow in `.github/workflows/deploy-pages.yml` automatically tests, builds,
-and deploys the editor whenever `main` is updated. The Pages URL is:
+- A free [WalletWallet API key](https://www.walletwallet.dev/signup/)
+- A free [Cloudflare account](https://dash.cloudflare.com/sign-up)
+- A Cloudflare API token with **Workers Scripts: Edit**
+
+Find the Cloudflare Account ID on the Workers dashboard.
+
+### 2. Add GitHub repository secrets
+
+In **Settings → Secrets and variables → Actions**, create:
 
 ```text
-https://aliomar0.github.io/Apple_Pass_Generator/
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+WALLETWALLET_API_KEY
 ```
 
-In the repository, open **Settings → Pages** and select **GitHub Actions** as the
-source. Until a signing API is configured, the entire editor and project export
-work on Pages, but Apple Wallet installation remains unavailable because GitHub
-Pages cannot run Node.js or securely hold a private signing key.
+The Worker deployment workflow attempts to save `PASS_API_URL` automatically.
+It also passes the URL directly to the first Pages rebuild, so initial
+deployment does not depend on variable-write permission.
 
-After deploying `server/` to an HTTPS Node.js host:
+### 3. Deploy
 
-1. Set `ALLOWED_ORIGINS=https://aliomar0.github.io` on the API host.
-2. Create a GitHub Actions repository variable named `PASS_API_URL`.
-3. Set it to the API origin, without `/api`, for example
-   `https://wallet-api.example.com`.
-4. Re-run the Pages workflow.
+Open **Actions → Deploy WalletWallet Proxy → Run workflow**.
 
-Never store Apple certificates in the frontend, repository, Pages workflow
-artifact, or a `VITE_` variable. They belong only in the signing API's encrypted
-environment.
+The workflow:
 
-The workflow sets `VITE_STATIC_HOST=true`, preventing the Pages build from
-mistaking GitHub's static host for the signing API. Normal `npm run build`
-deployments keep using the same-origin Express API.
+1. Runs all tests.
+2. Deploys `worker/index.js` to Cloudflare Workers.
+3. passes its deployment URL to the GitHub Pages workflow.
+4. attempts to retain that URL in the `PASS_API_URL` repository variable for
+   future `main` deployments.
+
+The WalletWallet key remains an encrypted Worker secret. It is never added to
+the repository, Pages artifact, or browser bundle.
+
+## Architecture
+
+```text
+GitHub Pages
+    → Cloudflare Worker
+        → WalletWallet API
+            → hosted Apple / Google Wallet installation page
+```
+
+The Worker only accepts the deployed Pages origin and local development origins,
+validates pass requests, applies a small per-device throttle, and exposes only:
+
+- `GET /api/health`
+- `POST /api/passes`
+
+Never commit `.dev.vars` or provider API keys.
