@@ -66,9 +66,9 @@ CLOUDFLARE_ACCOUNT_ID
 WALLETWALLET_API_KEY
 ```
 
-The Worker deployment workflow attempts to save `PASS_API_URL` automatically.
-It also passes the URL directly to the first Pages rebuild, so initial
-deployment does not depend on variable-write permission.
+Set the `PASS_API_URL` repository variable to the deployed Worker URL after the
+first run. The workflow also passes the current deployment URL directly to each
+Pages rebuild.
 
 ### 3. Deploy
 
@@ -79,8 +79,7 @@ The workflow:
 1. Runs all tests.
 2. Deploys `worker/index.js` to Cloudflare Workers.
 3. passes its deployment URL to the GitHub Pages workflow.
-4. attempts to retain that URL in the `PASS_API_URL` repository variable for
-   future `main` deployments.
+4. rebuilds the public site against the live Worker.
 
 The WalletWallet key remains an encrypted Worker secret. It is never added to
 the repository, Pages artifact, or browser bundle.

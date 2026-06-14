@@ -7,6 +7,9 @@ permissions:
   contents: read
   actions: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -29,13 +32,6 @@ jobs:
             WALLETWALLET_API_KEY
         env:
           WALLETWALLET_API_KEY: ${{ secrets.WALLETWALLET_API_KEY }}
-
-      - name: Configure Pages API URL
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          API_URL: ${{ steps.deploy.outputs.deployment-url }}
-        run: gh variable set PASS_API_URL --body "$API_URL" --repo "$GITHUB_REPOSITORY"
 
       - name: Rebuild GitHub Pages
         env:
