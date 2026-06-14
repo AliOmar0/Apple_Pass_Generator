@@ -38,6 +38,33 @@ describe("WalletWallet mapping", () => {
     });
   });
 
+  it("includes custom colors and artwork on Pro plans", () => {
+    const payload = toWalletWalletPayload(
+      {
+        ...builderPass,
+        colors: {
+          background: "#123456",
+          foreground: "#ffffff",
+          label: "#eeeeee",
+        },
+        assets: {
+          logo: "data:image/png;base64,bG9nbw==",
+          strip: "",
+          thumbnail: "",
+        },
+      },
+      { allowProFields: true },
+    );
+
+    expect(payload).toMatchObject({
+      backgroundColor: "#123456",
+      foregroundColor: "#ffffff",
+      labelColor: "#eeeeee",
+      logoBase64: "data:image/png;base64,bG9nbw==",
+    });
+    expect(payload).not.toHaveProperty("colorPreset");
+  });
+
   it("selects the nearest free color preset", () => {
     expect(nearestColorPreset("#5B4BDE")).toBe("purple");
     expect(nearestColorPreset("#F04438")).toBe("red");
@@ -77,14 +104,24 @@ describe("WalletWallet worker", () => {
   });
 
   it("returns the hosted install page from WalletWallet", async () => {
-    const providerFetch = vi.fn().mockResolvedValue(
-      Response.json({
-        serialNumber: "serial-123",
-        googleSaveUrl: "https://pay.google.com/example",
-        applePass: "base64-is-not-forwarded",
-        shareUrl: "https://api.walletwallet.dev/p/serial-123",
-      }),
-    );
+    const providerFetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          count: 0,
+          limit: 100000,
+          remaining: 100000,
+          plan: "pro",
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          serialNumber: "serial-123",
+          googleSaveUrl: "https://pay.google.com/example",
+          applePass: "base64-is-not-forwarded",
+          shareUrl: "https://api.walletwallet.dev/p/serial-123",
+        }),
+      );
     vi.stubGlobal("fetch", providerFetch);
 
     const request = new Request("https://worker.example/api/passes", {
@@ -104,8 +141,9 @@ describe("WalletWallet worker", () => {
 
     expect(response.status).toBe(201);
     expect(result.downloadUrl).toBe("https://api.walletwallet.dev/p/serial-123");
+    expect(result.appearanceMode).toBe("custom");
     expect(JSON.stringify(result)).not.toContain("base64-is-not-forwarded");
-    expect(providerFetch).toHaveBeenCalledWith(
+    expect(providerFetch).toHaveBeenLastCalledWith(
       "https://api.walletwallet.dev/api/passes",
       expect.objectContaining({
         headers: expect.objectContaining({

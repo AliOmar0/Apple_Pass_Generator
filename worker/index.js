@@ -111,7 +111,18 @@ function expirationDays(expirationDate) {
   return Math.min(3650, Math.max(1, days));
 }
 
-export function toWalletWalletPayload(builderPass) {
+function supportedImage(value) {
+  if (!value) return undefined;
+  if (!/^data:image\/(?:png|jpeg|webp);base64,/i.test(value)) {
+    throw new Error("Artwork must be a PNG, JPEG, or WebP image.");
+  }
+  if (value.length > 7_000_000) {
+    throw new Error("Each artwork file must be smaller than 5 MB.");
+  }
+  return value;
+}
+
+export function toWalletWalletPayload(builderPass, options = {}) {
   if (!builderPass || typeof builderPass !== "object") {
     throw new Error("Pass data is required.");
   }
@@ -147,6 +158,16 @@ export function toWalletWalletPayload(builderPass) {
     expirationDays: expirationDays(builderPass.expirationDate),
     sharingProhibited: false,
   };
+
+  if (options.allowProFields) {
+    payload.backgroundColor = builderPass.colors?.background;
+    payload.foregroundColor = builderPass.colors?.foreground;
+    payload.labelColor = builderPass.colors?.label;
+    payload.logoBase64 = supportedImage(builderPass.assets?.logo);
+    payload.stripImageBase64 = supportedImage(builderPass.assets?.strip);
+    payload.thumbnailBase64 = supportedImage(builderPass.assets?.thumbnail);
+    delete payload.colorPreset;
+  }
 
   return Object.fromEntries(
     Object.entries(payload).filter(([, value]) => value !== undefined),
@@ -241,14 +262,35 @@ async function createPass(request, env) {
     );
   }
 
-  let payload;
+  let builderPass;
   try {
-    payload = toWalletWalletPayload(await request.json());
+    builderPass = await request.json();
   } catch (error) {
-    return json({ message: error.message }, 400, request, env);
+    return json({ message: error.message || "Pass data is not valid JSON." }, 400, request, env);
   }
 
   try {
+    const usageResult = await walletWalletRequest("/api/auth/usage", env);
+    if (!usageResult.response) {
+      return json({ message: usageResult.error }, 503, request, env);
+    }
+    if (!usageResult.response.ok) {
+      return json(
+        { message: usageResult.body?.error || "WalletWallet authentication failed." },
+        usageResult.response.status,
+        request,
+        env,
+      );
+    }
+
+    const isPro = usageResult.body?.plan === "pro";
+    let payload;
+    try {
+      payload = toWalletWalletPayload(builderPass, { allowProFields: isPro });
+    } catch (error) {
+      return json({ message: error.message }, 400, request, env);
+    }
+
     const { response, body, error } = await walletWalletRequest("/api/passes", env, {
       method: "POST",
       body: JSON.stringify(payload),
@@ -273,11 +315,14 @@ async function createPass(request, env) {
         googleSaveUrl: body.googleSaveUrl,
         serialNumber: body.serialNumber,
         provider: "WalletWallet",
+        appearanceMode: isPro ? "custom" : "preset",
         appliedColorPreset: payload.colorPreset,
-        limitations: [
-          "Free managed signing uses a WalletWallet color preset.",
-          "Uploaded artwork requires WalletWallet Pro and was not sent.",
-        ],
+        limitations: isPro
+          ? []
+          : [
+              "Free managed signing uses a WalletWallet color preset.",
+              "Uploaded artwork requires WalletWallet Pro and was not sent.",
+            ],
       },
       201,
       request,

@@ -139,11 +139,7 @@ export default function App() {
       const response = await fetch(passesUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...pass,
-          assets: { logo: "", strip: "", thumbnail: "" },
-          advancedJson: "{}",
-        }),
+        body: JSON.stringify(pass),
       });
 
       if (!response.ok) {
@@ -159,7 +155,9 @@ export default function App() {
       setDownloadState("done");
       setNotice(
         result.provider === "WalletWallet"
-          ? `Managed pass created with the ${result.appliedColorPreset} color preset.`
+          ? result.appearanceMode === "custom"
+            ? "Managed pass created with your custom colors and artwork."
+            : `Managed pass created with the ${result.appliedColorPreset} color preset.`
           : "Signed pass created. Open it on an Apple device to add it to Wallet.",
       );
       window.location.assign(passDownloadUrl);
