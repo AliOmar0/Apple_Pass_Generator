@@ -113,8 +113,8 @@ function expirationDays(expirationDate) {
 
 function supportedImage(value) {
   if (!value) return undefined;
-  if (!/^data:image\/(?:png|jpeg|webp);base64,/i.test(value)) {
-    throw new Error("Artwork must be a PNG, JPEG, or WebP image.");
+  if (!/^data:image\/png;base64,/i.test(value)) {
+    throw new Error("Artwork must be cropped to PNG before publishing.");
   }
   if (value.length > 7_000_000) {
     throw new Error("Each artwork file must be smaller than 5 MB.");
@@ -160,12 +160,11 @@ export function toWalletWalletPayload(builderPass, options = {}) {
   };
 
   if (options.allowProFields) {
-    payload.backgroundColor = builderPass.colors?.background;
-    payload.foregroundColor = builderPass.colors?.foreground;
-    payload.labelColor = builderPass.colors?.label;
-    payload.logoBase64 = supportedImage(builderPass.assets?.logo);
-    payload.stripImageBase64 = supportedImage(builderPass.assets?.strip);
-    payload.thumbnailBase64 = supportedImage(builderPass.assets?.thumbnail);
+    payload.color = builderPass.colors?.background;
+    payload.logoURL = supportedImage(builderPass.assets?.logo);
+    payload.iconURL = payload.logoURL;
+    payload.stripURL = supportedImage(builderPass.assets?.strip);
+    payload.thumbnailURL = supportedImage(builderPass.assets?.thumbnail);
     delete payload.colorPreset;
   }
 

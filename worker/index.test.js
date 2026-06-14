@@ -57,10 +57,9 @@ describe("WalletWallet mapping", () => {
     );
 
     expect(payload).toMatchObject({
-      backgroundColor: "#123456",
-      foregroundColor: "#ffffff",
-      labelColor: "#eeeeee",
-      logoBase64: "data:image/png;base64,bG9nbw==",
+      color: "#123456",
+      logoURL: "data:image/png;base64,bG9nbw==",
+      iconURL: "data:image/png;base64,bG9nbw==",
     });
     expect(payload).not.toHaveProperty("colorPreset");
   });

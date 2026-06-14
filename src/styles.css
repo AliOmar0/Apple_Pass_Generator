@@ -1158,3 +1158,637 @@ textarea:focus {
     gap: 28px;
   }
 }
+
+/* Refined builder layout */
+.eyebrow {
+  display: block;
+  color: #7f56d9;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.workspace {
+  grid-template-areas: "templates editor preview";
+  grid-template-columns: 238px minmax(440px, 1fr) minmax(380px, 430px);
+  max-width: 1540px;
+}
+
+.template-sidebar {
+  grid-area: templates;
+  padding: 26px 14px 30px 18px;
+}
+
+.editor-panel {
+  grid-area: editor;
+}
+
+.preview-panel {
+  grid-area: preview;
+  position: sticky;
+  top: 68px;
+  align-self: start;
+  min-height: calc(100vh - 68px);
+  padding: 26px 26px 38px;
+}
+
+.sidebar-heading {
+  padding: 0 8px 15px;
+}
+
+.sidebar-heading h2,
+.preview-heading h2 {
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.template-card {
+  grid-template-columns: 39px minmax(0, 1fr) 18px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.template-swatch {
+  width: 39px;
+  height: 44px;
+}
+
+.template-card strong {
+  margin: 0;
+}
+
+.editor-title {
+  min-height: 102px;
+  padding: 23px 28px 17px;
+}
+
+.editor-title h1 {
+  margin-top: 3px;
+}
+
+.editor-scroll {
+  padding-inline: 28px;
+}
+
+.color-control {
+  display: block;
+  max-width: 320px;
+}
+
+.artwork-control {
+  min-height: 66px;
+  padding: 9px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  border: 1px dashed #cfd4dc;
+  border-radius: 12px;
+  background: #fff;
+  transition: 160ms ease;
+}
+
+.artwork-control:hover {
+  border-color: #9b8afb;
+  background: #fbfaff;
+}
+
+.artwork-control.has-image {
+  border-style: solid;
+}
+
+.artwork-preview {
+  width: 54px;
+  height: 46px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #6941c6;
+  border: 0;
+  border-radius: 9px;
+  background: #f4f3ff;
+  cursor: pointer;
+}
+
+.artwork-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artwork-copy {
+  min-width: 0;
+}
+
+.artwork-copy strong,
+.artwork-copy span {
+  display: block;
+}
+
+.artwork-copy strong {
+  margin-bottom: 3px;
+  font-size: 11.5px;
+}
+
+.artwork-copy span {
+  overflow: hidden;
+  color: #98a2b3;
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artwork-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.artwork-actions button,
+.crop-toolbar button,
+.project-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #475467;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.artwork-actions button {
+  height: 32px;
+  padding: 0 9px;
+}
+
+.artwork-actions .danger-icon {
+  width: 32px;
+  padding: 0;
+  color: #b42318;
+}
+
+.inline-warning {
+  margin-top: 10px;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #854a0e;
+  border-radius: 9px;
+  background: #fffaeb;
+  font-size: 10px;
+}
+
+.crop-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgba(16, 24, 40, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.crop-dialog {
+  width: min(100%, 690px);
+  max-height: calc(100vh - 48px);
+  padding: 22px;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 30px 90px rgba(16, 24, 40, 0.32);
+}
+
+.crop-dialog-header,
+.crop-dialog-actions,
+.crop-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.crop-dialog-header h2 {
+  margin: 4px 0 0;
+  font-size: 21px;
+  letter-spacing: -0.04em;
+}
+
+.crop-stage-wrap {
+  margin: 20px 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 14px;
+  background:
+    linear-gradient(45deg, #e9ebef 25%, transparent 25%),
+    linear-gradient(-45deg, #e9ebef 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e9ebef 75%),
+    linear-gradient(-45deg, transparent 75%, #e9ebef 75%),
+    #f6f7f9;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+}
+
+.crop-stage {
+  display: block;
+  max-width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.15);
+}
+
+.crop-stage:active {
+  cursor: grabbing;
+}
+
+.crop-help,
+.crop-loading {
+  position: absolute;
+  padding: 5px 8px;
+  color: #fff;
+  border-radius: 999px;
+  background: rgba(16, 24, 40, 0.72);
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.crop-help {
+  right: 10px;
+  bottom: 10px;
+}
+
+.crop-loading {
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+
+.crop-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.crop-controls label {
+  min-width: 0;
+}
+
+.crop-controls span {
+  display: block;
+  margin-bottom: 8px;
+  color: #475467;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.crop-controls input {
+  width: 100%;
+  accent-color: #6941c6;
+}
+
+.crop-toolbar {
+  margin-top: 17px;
+}
+
+.crop-toolbar > div {
+  display: flex;
+  gap: 7px;
+}
+
+.crop-toolbar button {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.crop-dialog-actions {
+  margin-top: 20px;
+  padding-top: 17px;
+  border-top: 1px solid #eaecf0;
+}
+
+.crop-dialog-actions > span {
+  color: #98a2b3;
+  font-size: 10px;
+}
+
+.crop-dialog-actions > div {
+  display: flex;
+  gap: 8px;
+}
+
+.crop-dialog-actions .secondary-button,
+.primary-action {
+  width: auto;
+  min-width: 100px;
+  height: 39px;
+  margin: 0;
+  padding: 0 14px;
+}
+
+.primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #fff;
+  border: 0;
+  border-radius: 9px;
+  background: #6941c6;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.primary-fields {
+  position: relative;
+}
+
+.primary-fields.has-thumbnail {
+  padding-right: 82px;
+}
+
+.pass-thumbnail {
+  width: 70px;
+  height: 70px;
+  position: absolute;
+  top: 11px;
+  right: 0;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.16);
+}
+
+.provider-summary {
+  color: #475467;
+  border-color: #e4e7ec;
+  background: #fff;
+}
+
+.provider-summary span {
+  color: #067647;
+}
+
+.project-button {
+  width: 100%;
+  height: 38px;
+  margin-top: 8px;
+  border: 0;
+  color: #667085;
+  background: transparent;
+}
+
+.project-button:hover {
+  color: #344054;
+  background: #eef0f3;
+}
+
+@media (max-width: 1180px) {
+  .workspace {
+    grid-template-columns: 210px minmax(410px, 1fr) 360px;
+  }
+
+  .preview-panel {
+    padding-inline: 17px;
+  }
+}
+
+@media (max-width: 980px) {
+  .workspace {
+    grid-template-areas:
+      "templates"
+      "preview"
+      "editor";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .template-sidebar {
+    padding: 20px 22px 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sidebar-heading {
+    padding: 0 0 12px;
+  }
+
+  .template-list {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+  }
+
+  .template-card {
+    min-width: 172px;
+    scroll-snap-align: start;
+  }
+
+  .preview-panel {
+    position: static;
+    min-height: 0;
+    padding: 24px 22px 28px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .preview-heading,
+  .device-frame,
+  .publish-card {
+    max-width: 390px;
+    margin-inline: auto;
+  }
+
+  .preview-heading {
+    margin-bottom: 18px;
+  }
+
+  .editor-panel {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar {
+    height: 60px;
+    padding-inline: 14px;
+  }
+
+  .wordmark {
+    font-size: 17px;
+  }
+
+  .wordmark > span {
+    width: 33px;
+    height: 33px;
+  }
+
+  .status-pill {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .workspace {
+    display: grid;
+  }
+
+  .template-sidebar {
+    padding: 17px 14px 15px;
+  }
+
+  .sidebar-heading h2 {
+    font-size: 16px;
+  }
+
+  .template-card {
+    min-width: 155px;
+  }
+
+  .preview-panel {
+    padding: 20px 14px 24px;
+  }
+
+  .preview-heading {
+    padding-inline: 4px;
+  }
+
+  .device-frame {
+    width: min(100%, 360px);
+    padding: 22px 14px 12px;
+    border-radius: 32px;
+  }
+
+  .pass-card {
+    min-height: 420px;
+    padding-inline: 15px;
+  }
+
+  .pass-strip {
+    margin-inline: -15px;
+  }
+
+  .editor-title {
+    min-height: 94px;
+    padding: 20px 16px 16px;
+  }
+
+  .editor-title h1 {
+    font-size: 20px;
+  }
+
+  .panel-tabs {
+    height: 51px;
+    padding-inline: 16px;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .panel-tabs button {
+    font-size: 11px;
+  }
+
+  .editor-scroll {
+    padding: 3px 16px 34px;
+  }
+
+  .control-section,
+  .field-section {
+    padding-block: 21px;
+  }
+
+  .artwork-control {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .artwork-preview {
+    width: 48px;
+    height: 43px;
+  }
+
+  .artwork-actions button {
+    width: 34px;
+    padding: 0;
+  }
+
+  .artwork-actions button:not(.danger-icon) {
+    font-size: 0;
+  }
+
+  .artwork-actions button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .crop-dialog-backdrop {
+    padding: 0;
+    place-items: end center;
+  }
+
+  .crop-dialog {
+    width: 100%;
+    max-height: 92vh;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .crop-stage-wrap {
+    margin-block: 16px;
+  }
+
+  .crop-stage {
+    max-height: 270px;
+  }
+
+  .crop-controls {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .crop-controls span {
+    margin-bottom: 3px;
+  }
+
+  .crop-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .crop-toolbar > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .crop-toolbar > button {
+    width: 100%;
+  }
+
+  .crop-dialog-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .crop-dialog-actions > div {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+  }
+
+  .crop-dialog-actions .secondary-button,
+  .primary-action {
+    width: 100%;
+  }
+}

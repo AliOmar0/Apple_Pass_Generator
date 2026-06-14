@@ -5,15 +5,13 @@ import {
   ChevronDown,
   CircleAlert,
   Download,
-  ImagePlus,
-  Layers3,
   LoaderCircle,
   Palette,
   RotateCcw,
   Settings2,
-  Sparkles,
   Ticket,
 } from "lucide-react";
+import ArtworkEditor from "./components/ArtworkEditor";
 import FieldEditor from "./components/FieldEditor";
 import PassPreview from "./components/PassPreview";
 import { apiUrl, hasConfiguredApi } from "./api";
@@ -33,53 +31,18 @@ function ColorInput({ label, value, onChange }) {
   );
 }
 
-function ImageUpload({ label, hint, value, onChange }) {
-  const handleFile = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result);
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <label className="upload-control">
-      <div className="upload-icon">
-        {value ? <img src={value} alt="" /> : <ImagePlus size={20} />}
-      </div>
-      <div>
-        <strong>{label}</strong>
-        <span>{value ? "Image selected · click to replace" : hint}</span>
-      </div>
-      {value && (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            onChange("");
-          }}
-        >
-          Remove
-        </button>
-      )}
-      <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} />
-    </label>
-  );
-}
-
 export default function App() {
   const [pass, setPass] = useState(() => ({
     ...cloneTemplate(templates[0]),
     assets: { logo: "", strip: "", thumbnail: "" },
-    relevantDate: "",
     expirationDate: "",
-    advancedJson: "{}",
   }));
   const [activePanel, setActivePanel] = useState("design");
   const [signingInfo, setSigningInfo] = useState(null);
   const [downloadState, setDownloadState] = useState("idle");
   const [notice, setNotice] = useState("");
   const signingReady = Boolean(signingInfo?.signingConfigured);
+  const isPro = signingInfo?.usage?.plan === "pro";
 
   useEffect(() => {
     const healthUrl = apiUrl("/api/health");
@@ -87,7 +50,7 @@ export default function App() {
       setSigningInfo({
         signingConfigured: false,
         provider: "WalletWallet",
-        message: "The managed signing proxy has not been deployed.",
+        message: "The signing service has not been deployed.",
       });
       return;
     }
@@ -99,7 +62,7 @@ export default function App() {
         setSigningInfo({
           signingConfigured: false,
           provider: "WalletWallet",
-          message: "The managed signing service is unavailable.",
+          message: "The signing service is unavailable.",
         }),
       );
   }, []);
@@ -118,18 +81,17 @@ export default function App() {
     setPass({
       ...cloneTemplate(template),
       assets,
-      relevantDate: "",
       expirationDate: "",
-      advancedJson: "{}",
     });
     setNotice("");
+    setDownloadState("idle");
   };
 
   const downloadPass = async () => {
     const passesUrl = apiUrl("/api/passes");
     if (!passesUrl) {
       setDownloadState("error");
-      setNotice("Connect a hosted signing API before generating Wallet passes.");
+      setNotice("The signing service is not connected yet.");
       return;
     }
 
@@ -148,18 +110,11 @@ export default function App() {
       }
 
       const result = await response.json();
-      const { downloadUrl } = result;
-      const passDownloadUrl = downloadUrl.startsWith("http")
-        ? downloadUrl
-        : new URL(downloadUrl, passesUrl).toString();
+      const passDownloadUrl = result.downloadUrl.startsWith("http")
+        ? result.downloadUrl
+        : new URL(result.downloadUrl, passesUrl).toString();
       setDownloadState("done");
-      setNotice(
-        result.provider === "WalletWallet"
-          ? result.appearanceMode === "custom"
-            ? "Managed pass created with your custom colors and artwork."
-            : `Managed pass created with the ${result.appliedColorPreset} color preset.`
-          : "Signed pass created. Open it on an Apple device to add it to Wallet.",
-      );
+      setNotice("Your pass is ready. Continue on the install page.");
       window.location.assign(passDownloadUrl);
     } catch (error) {
       setDownloadState("error");
@@ -177,40 +132,38 @@ export default function App() {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
-    setNotice("Project exported. You can keep designing while Apple enrollment is pending.");
+    setNotice("Project exported.");
     setDownloadState("done");
   };
+
+  const remainingPasses = signingInfo?.usage?.remaining;
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <a className="wordmark" href="#">
-          <span><Ticket size={21} /></span>
+          <span><Ticket size={20} /></span>
           Wallet Studio
         </a>
-        <div className="topbar-meta">
-          <span className={`status-pill ${signingReady ? "ready" : ""}`}>
-            <i />
-            {signingInfo === null
-              ? "Checking signer"
-              : signingReady
-                ? `${signingInfo.provider || "Signer"} connected`
-                : hasConfiguredApi
-                  ? "Signer unavailable"
-                  : "Pages preview mode"}
-          </span>
-          <a href="#setup">Signing setup</a>
-        </div>
+        <span className={`status-pill ${signingReady ? "ready" : ""}`}>
+          <i />
+          {signingInfo === null
+            ? "Connecting"
+            : signingReady
+              ? "Ready"
+              : hasConfiguredApi
+                ? "Unavailable"
+                : "Preview mode"}
+        </span>
       </header>
 
       <main className="workspace">
         <aside className="template-sidebar">
           <div className="sidebar-heading">
             <div>
-              <span className="step-label">STEP 1</span>
-              <h2>Choose a starting point</h2>
+              <span className="eyebrow">STARTING POINT</span>
+              <h2>Templates</h2>
             </div>
-            <Sparkles size={19} />
           </div>
           <div className="template-list">
             {templates.map((template) => (
@@ -221,29 +174,24 @@ export default function App() {
                 onClick={() => selectTemplate(template)}
               >
                 <span className="template-swatch" style={{ background: template.colors.background }}>
-                  <Ticket size={18} />
+                  <Ticket size={17} />
                 </span>
                 <span>
                   <small>{template.eyebrow}</small>
                   <strong>{template.name}</strong>
-                  <p>{template.description}</p>
                 </span>
-                {pass.id === template.id && <Check className="selected-check" size={16} />}
+                {pass.id === template.id && <Check className="selected-check" size={15} />}
               </button>
             ))}
-          </div>
-          <div className="template-note">
-            <Layers3 size={18} />
-            <p><strong>Every template is editable.</strong> Change fields, colors, imagery, barcode data, and advanced PassKit properties.</p>
           </div>
         </aside>
 
         <section className="editor-panel">
           <div className="editor-title">
             <div>
-              <span className="step-label">STEP 2</span>
-              <h1>Customize your pass</h1>
-              <p>Editing <strong>{selectedTemplate?.name}</strong></p>
+              <span className="eyebrow">CUSTOMIZE</span>
+              <h1>{selectedTemplate?.name}</h1>
+              <p>Your changes appear in the preview instantly.</p>
             </div>
             <button className="reset-button" type="button" onClick={() => selectTemplate(selectedTemplate)}>
               <RotateCcw size={15} /> Reset
@@ -257,8 +205,8 @@ export default function App() {
             <button className={activePanel === "content" ? "active" : ""} onClick={() => setActivePanel("content")}>
               <Ticket size={16} /> Content
             </button>
-            <button className={activePanel === "advanced" ? "active" : ""} onClick={() => setActivePanel("advanced")}>
-              <Settings2 size={16} /> Advanced
+            <button className={activePanel === "details" ? "active" : ""} onClick={() => setActivePanel("details")}>
+              <Settings2 size={16} /> Details
             </button>
           </div>
 
@@ -267,7 +215,7 @@ export default function App() {
               <>
                 <section className="control-section">
                   <div className="section-heading">
-                    <div><h3>Identity</h3><p>Your organization and pass branding.</p></div>
+                    <div><h3>Identity</h3><p>The name shown on the pass and install screen.</p></div>
                   </div>
                   <label className="text-control">
                     <span>Logo text</span>
@@ -281,44 +229,34 @@ export default function App() {
                     <span>Pass description</span>
                     <input value={pass.passDescription} onChange={(event) => update("passDescription", event.target.value)} />
                   </label>
-                  <label className="text-control">
-                    <span>Pass style</span>
-                    <div className="select-wrap">
-                      <select value={pass.passType} onChange={(event) => update("passType", event.target.value)}>
-                        <option value="generic">Generic</option>
-                        <option value="eventTicket">Event ticket</option>
-                        <option value="coupon">Coupon</option>
-                        <option value="storeCard">Store card</option>
-                        <option value="boardingPass">Boarding pass</option>
-                      </select>
-                      <ChevronDown size={16} />
-                    </div>
-                  </label>
-                  <p className="provider-note">The style changes this preview and project export. WalletWallet Free currently issues its standard managed layout.</p>
                 </section>
 
                 <section className="control-section">
                   <div className="section-heading">
-                    <div><h3>Colors</h3><p>Wallet supports RGB pass colors.</p></div>
+                    <div><h3>Pass color</h3><p>Choose the main Wallet background color.</p></div>
                   </div>
-                  <div className="color-grid">
-                    <ColorInput label="Background" value={pass.colors.background} onChange={(value) => updateNested("colors", "background", value)} />
-                    <ColorInput label="Text" value={pass.colors.foreground} onChange={(value) => updateNested("colors", "foreground", value)} />
-                    <ColorInput label="Labels" value={pass.colors.label} onChange={(value) => updateNested("colors", "label", value)} />
-                  </div>
-                  <p className="provider-note">WalletWallet Free maps the background to its nearest preset: dark, blue, green, red, purple, or orange.</p>
+                  <ColorInput
+                    label="Background"
+                    value={pass.colors.background}
+                    onChange={(value) => updateNested("colors", "background", value)}
+                  />
                 </section>
 
                 <section className="control-section">
                   <div className="section-heading">
-                    <div><h3>Artwork</h3><p>PNG, JPEG, or WebP. Images are resized on the server.</p></div>
+                    <div><h3>Artwork</h3><p>Crop and adjust each image before adding it to the pass.</p></div>
                   </div>
                   <div className="upload-list">
-                    <ImageUpload label="Logo" hint="Recommended: wide transparent image" value={pass.assets.logo} onChange={(value) => updateNested("assets", "logo", value)} />
-                    <ImageUpload label="Strip image" hint="Optional banner artwork" value={pass.assets.strip} onChange={(value) => updateNested("assets", "strip", value)} />
-                    <ImageUpload label="Thumbnail" hint="Optional event or person image" value={pass.assets.thumbnail} onChange={(value) => updateNested("assets", "thumbnail", value)} />
+                    <ArtworkEditor type="logo" value={pass.assets.logo} onChange={(value) => updateNested("assets", "logo", value)} />
+                    <ArtworkEditor type="strip" value={pass.assets.strip} onChange={(value) => updateNested("assets", "strip", value)} />
+                    <ArtworkEditor type="thumbnail" value={pass.assets.thumbnail} onChange={(value) => updateNested("assets", "thumbnail", value)} />
                   </div>
-                  <p className="provider-note">Artwork remains in exported projects. WalletWallet requires Pro before these images can appear on managed passes.</p>
+                  {signingInfo !== null && !isPro && (
+                    <div className="inline-warning">
+                      <CircleAlert size={17} />
+                      Artwork requires a WalletWallet Pro plan.
+                    </div>
+                  )}
                 </section>
               </>
             )}
@@ -336,11 +274,11 @@ export default function App() {
               </>
             )}
 
-            {activePanel === "advanced" && (
+            {activePanel === "details" && (
               <>
                 <section className="control-section">
                   <div className="section-heading">
-                    <div><h3>Barcode</h3><p>Used for scanning, validation, or redemption.</p></div>
+                    <div><h3>Barcode</h3><p>What scanners read and people see beneath it.</p></div>
                   </div>
                   <label className="text-control">
                     <span>Format</span>
@@ -359,36 +297,19 @@ export default function App() {
                     <input value={pass.barcode.message} onChange={(event) => updateNested("barcode", "message", event.target.value)} />
                   </label>
                   <label className="text-control">
-                    <span>Human-readable text</span>
+                    <span>Text below barcode</span>
                     <input value={pass.barcode.altText} onChange={(event) => updateNested("barcode", "altText", event.target.value)} />
                   </label>
                 </section>
 
                 <section className="control-section">
                   <div className="section-heading">
-                    <div><h3>Dates</h3><p>ISO date values control relevance and expiration.</p></div>
+                    <div><h3>Expiration</h3><p>Leave empty when the pass should not expire.</p></div>
                   </div>
-                  <label className="text-control">
-                    <span>Relevant date</span>
-                    <input type="datetime-local" value={pass.relevantDate} onChange={(event) => update("relevantDate", event.target.value)} />
-                  </label>
                   <label className="text-control">
                     <span>Expiration date</span>
                     <input type="datetime-local" value={pass.expirationDate} onChange={(event) => update("expirationDate", event.target.value)} />
                   </label>
-                  <p className="provider-note">Managed signing applies the expiration date. Relevant dates remain available in project exports.</p>
-                </section>
-
-                <section className="control-section">
-                  <div className="section-heading">
-                    <div><h3>Additional PassKit JSON</h3><p>Preserved in project exports. WalletWallet managed signing ignores unsupported raw PassKit properties.</p></div>
-                  </div>
-                  <textarea
-                    className="json-editor"
-                    spellCheck="false"
-                    value={pass.advancedJson}
-                    onChange={(event) => update("advancedJson", event.target.value)}
-                  />
                 </section>
               </>
             )}
@@ -398,10 +319,9 @@ export default function App() {
         <aside className="preview-panel">
           <div className="preview-heading">
             <div>
-              <span className="step-label">STEP 3</span>
-              <h2>Preview & publish</h2>
+              <span className="eyebrow">LIVE PREVIEW</span>
+              <h2>Ready for Wallet</h2>
             </div>
-            <span className="live-pill"><i /> LIVE</span>
           </div>
 
           <PassPreview pass={pass} />
@@ -410,43 +330,26 @@ export default function App() {
             {!signingReady && signingInfo !== null && (
               <div className="setup-warning">
                 <CircleAlert size={18} />
-                <span>
-                  <strong>{hasConfiguredApi ? "Managed signing isn’t ready." : "The WalletWallet proxy isn’t connected."}</strong>{" "}
-                  {signingInfo?.message || "Deploy the Cloudflare Worker to generate signed passes."}
-                </span>
+                <span>{signingInfo?.message || "The signing service is unavailable."}</span>
               </div>
             )}
-            {signingReady && signingInfo?.usage && (
+            {signingReady && typeof remainingPasses === "number" && (
               <div className="provider-summary">
-                <span>WalletWallet {signingInfo.usage.plan || "free"}</span>
-                <strong>{signingInfo.usage.remaining} of {signingInfo.usage.limit} passes remaining this month</strong>
+                <span>{isPro ? "Custom artwork enabled" : "Managed signing"}</span>
+                <strong>{remainingPasses.toLocaleString()} passes left</strong>
               </div>
             )}
             <button className="wallet-button" type="button" onClick={downloadPass} disabled={downloadState === "loading"}>
               {downloadState === "loading" ? <LoaderCircle className="spinner" size={24} /> : <Apple fill="currentColor" size={25} />}
-              <span><small>{signingReady ? "Create managed pass" : "Requires signer to"}</small>Add to Apple Wallet</span>
+              <span><small>Create and install</small>Add to Apple Wallet</span>
             </button>
-            <button className="secondary-button" type="button" onClick={signingReady ? downloadPass : exportProject} disabled={downloadState === "loading"}>
-              <Download size={17} /> {signingReady ? "Open device install page" : "Export pass project"}
+            <button className="project-button" type="button" onClick={exportProject}>
+              <Download size={16} /> Export project
             </button>
             {notice && <p className={`notice ${downloadState === "error" ? "error" : ""}`}>{notice}</p>}
-            <p className="privacy-note">The WalletWallet API key stays encrypted in Cloudflare and is never included in this website.</p>
           </div>
         </aside>
       </main>
-
-      <section className="setup-section" id="setup">
-        <div>
-          <span className="step-label">MANAGED SIGNING</span>
-          <h2>WalletWallet signs the pass for you</h2>
-          <p>No Apple Developer membership or certificate is needed. A Cloudflare Worker keeps the WalletWallet API key private and sends users to a hosted page that selects Apple Wallet, Google Wallet, or a desktop QR code.</p>
-        </div>
-        <ol>
-          <li><span>1</span>Create a free WalletWallet API key.</li>
-          <li><span>2</span>Store it as an encrypted Cloudflare Worker secret.</li>
-          <li><span>3</span>Use up to 1,000 managed passes each month on the free tier.</li>
-        </ol>
-      </section>
     </div>
   );
 }

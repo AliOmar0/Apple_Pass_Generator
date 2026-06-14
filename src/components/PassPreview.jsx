@@ -32,6 +32,7 @@ export default function PassPreview({ pass }) {
   const { colors, fields } = pass;
   const isBoarding = pass.passType === "boardingPass";
   const stripImage = pass.assets?.strip;
+  const thumbnail = pass.assets?.thumbnail;
 
   return (
     <div className="device-frame">
@@ -58,13 +59,14 @@ export default function PassPreview({ pass }) {
           <div className="pass-strip" style={{ backgroundImage: `url(${stripImage})` }} />
         )}
 
-        <div className={`primary-fields ${isBoarding ? "boarding-route" : ""}`}>
+        <div className={`primary-fields ${isBoarding ? "boarding-route" : ""} ${thumbnail ? "has-thumbnail" : ""}`}>
           {fields.primary.slice(0, isBoarding ? 2 : 1).map((item, index) => (
             <div className="route-wrap" key={item.key}>
               <Field item={item} labelColor={colors.label} primary />
               {isBoarding && index === 0 && <span className="route-line">→</span>}
             </div>
           ))}
+          {thumbnail && <img className="pass-thumbnail" src={thumbnail} alt="" />}
         </div>
 
         <div className="secondary-fields">
@@ -85,7 +87,7 @@ export default function PassPreview({ pass }) {
         </div>
         <div className="info-dot">i</div>
       </div>
-      <p className="preview-caption">Live preview · appearance varies slightly by device</p>
+      <p className="preview-caption">Appearance may vary slightly by device</p>
     </div>
   );
 }
